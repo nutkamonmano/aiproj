@@ -1,0 +1,211 @@
+/* ============================================================
+   SCI-FI OVERLAY EFFECTS
+   ============================================================ */
+
+/* --- Scanlines --- */
+.scanlines {
+  position: relative;
+  overflow: hidden;
+}
+.scanlines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.06) 2px,
+    rgba(0, 0, 0, 0.06) 4px
+  );
+  pointer-events: none;
+  z-index: 2;
+  border-radius: inherit;
+}
+
+/* --- Neon Glow Border --- */
+.neon-border {
+  border: 1px solid var(--cyan);
+  box-shadow:
+    0 0 8px rgba(0, 245, 255, 0.4),
+    0 0 24px rgba(0, 245, 255, 0.15),
+    inset 0 0 8px rgba(0, 245, 255, 0.05);
+}
+
+.neon-border-purple {
+  border: 1px solid var(--purple);
+  box-shadow:
+    0 0 8px rgba(178, 75, 255, 0.4),
+    0 0 24px rgba(178, 75, 255, 0.15);
+}
+
+/* --- Glassmorphism Card --- */
+.glass-card {
+  background: rgba(13, 13, 43, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 245, 255, 0.12);
+}
+
+/* --- HUD Corner Decorators --- */
+.hud-corners {
+  position: relative;
+}
+.hud-corners::before,
+.hud-corners::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: var(--cyan);
+  border-style: solid;
+  opacity: 0.7;
+}
+.hud-corners::before {
+  top: 0; left: 0;
+  border-width: 2px 0 0 2px;
+  border-radius: 4px 0 0 0;
+}
+.hud-corners::after {
+  bottom: 0; right: 0;
+  border-width: 0 2px 2px 0;
+  border-radius: 0 0 4px 0;
+}
+
+/* --- Holographic Shimmer --- */
+.holographic {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 245, 255, 0.1) 0%,
+    rgba(178, 75, 255, 0.1) 33%,
+    rgba(255, 75, 139, 0.1) 66%,
+    rgba(0, 245, 255, 0.1) 100%
+  );
+  background-size: 200% 200%;
+  animation: hologram-shift 4s ease infinite;
+}
+
+@keyframes hologram-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* --- Cyber Grid Background --- */
+.cyber-grid {
+  background-image:
+    linear-gradient(rgba(0, 245, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 245, 255, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* --- Processing Step Item --- */
+.process-step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+.process-step.waiting  { color: var(--text-muted); border-color: transparent; }
+.process-step.active   { color: var(--cyan); border-color: rgba(0, 245, 255, 0.2); background: rgba(0, 245, 255, 0.05); }
+.process-step.done     { color: var(--green); border-color: rgba(0, 255, 159, 0.2); background: rgba(0, 255, 159, 0.05); }
+.process-step.error    { color: var(--pink); border-color: rgba(255, 75, 139, 0.2); background: rgba(255, 75, 139, 0.05); }
+
+.step-status-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+.step-status-icon .mini-spin {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 245, 255, 0.2);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* --- Ratio Toggle Buttons --- */
+.ratio-toggle {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.ratio-btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+.ratio-btn.active {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: rgba(0, 245, 255, 0.08);
+  box-shadow: 0 0 12px rgba(0, 245, 255, 0.2);
+}
+.ratio-btn:not(.active):hover {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+
+/* --- Camera View --- */
+.camera-frame {
+  position: relative;
+  background: #000;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  aspect-ratio: 3/4;
+}
+.camera-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* mirror front camera */
+}
+
+/* --- Capture Button --- */
+.capture-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 3px solid var(--cyan);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.capture-btn::after {
+  content: '';
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--cyan);
+  transition: all 0.15s ease;
+}
+.capture-btn:hover::after, .capture-btn:active::after {
+  width: 44px;
+  height: 44px;
+  background: var(--purple);
+}
+.capture-btn:active {
+  box-shadow: 0 0 30px rgba(0, 245, 255, 0.8);
+}
