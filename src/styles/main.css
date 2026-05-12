@@ -79,10 +79,16 @@ body {
 #app {
   position: relative;
   z-index: 1;
-  height: 100dvh;
-  overflow: hidden;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
+}
+
+#content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* ============================================================

@@ -16,7 +16,7 @@ export class CameraCapture {
 
   render() {
     this.container.innerHTML = `
-      <div class="screen" id="screen-camera" style="height: 100%; max-height: 100%; overflow: hidden; display: flex; flex-direction: column;">
+      <div class="screen" id="screen-camera">
         <div style="display:flex; align-items:center; justify-content: space-between; gap:10px; margin-bottom:12px; flex-shrink: 0;">
           <button class="btn btn-ghost" id="btn-back-camera" style="padding:8px 12px; min-height:36px; font-size:0.8rem; flex-shrink:0;">← กลับ</button>
           <div style="text-align: right; min-width: 0;">
