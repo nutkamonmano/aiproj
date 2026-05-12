@@ -1,6 +1,4 @@
-import { removeBackground } from '@imgly/background-removal';
-
-let isModelLoaded = false;
+let removeBackground;
 
 /**
  * Removes the background from an image file/blob and returns a transparent PNG blob.
@@ -10,6 +8,11 @@ let isModelLoaded = false;
  * @returns {Promise<Blob>}
  */
 export async function segmentPerson(imageSource, onProgress) {
+  if (!removeBackground) {
+    // Dynamically import to ensure Vite bundles it
+    removeBackground = (await import('@imgly/background-removal')).removeBackground;
+  }
+
   const config = {
     model: 'small',
     // Force use of official CDN to avoid local path/hashing issues on GitHub Pages
@@ -29,7 +32,6 @@ export async function segmentPerson(imageSource, onProgress) {
 
   try {
     const blob = await removeBackground(imageSource, config);
-    isModelLoaded = true;
     return blob;
   } catch (err) {
     console.error('[segmentation] Detailed Error:', err);
@@ -39,5 +41,5 @@ export async function segmentPerson(imageSource, onProgress) {
 }
 
 export function isSegmentationReady() {
-  return isModelLoaded;
+  return true;
 }
