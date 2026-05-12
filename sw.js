@@ -1,4 +1,4 @@
-const CACHE_NAME = 'hcu-landmarklens-v2';
+const CACHE_NAME = 'hcu-landmarklens-v3';
 const ASSETS = [
   './',
   './index.html',

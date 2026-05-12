@@ -37,7 +37,7 @@ export class CameraCapture {
         </div>
 
         <!-- Controls -->
-        <div id="camera-controls" style="margin-top:20px; display:flex; flex-direction:column; align-items:center; gap:16px;">
+        <div id="camera-controls" style="margin-top:clamp(10px, 4vh, 20px); display:flex; flex-direction:column; align-items:center; gap:clamp(8px, 2vh, 16px);">
           <div style="display:flex; align-items:center; gap:24px;">
             <!-- Upload button -->
             <label class="btn btn-icon" style="cursor:pointer;" title="อัปโหลดรูป">
