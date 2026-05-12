@@ -1,5 +1,10 @@
 console.log('HCU LandmarkLens v1.1.0 - Initializing...');
 
+// Import styles
+import './styles/main.css';
+import './styles/animations.css';
+import './styles/effects.css';
+
 import { LandmarkPicker } from './components/LandmarkPicker.js';
 import { CameraCapture } from './components/CameraCapture.js';
 import { ProcessingScreen } from './components/ProcessingScreen.js';
