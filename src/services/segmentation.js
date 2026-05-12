@@ -12,7 +12,7 @@ let isModelLoaded = false;
 export async function segmentPerson(imageSource, onProgress) {
   const config = {
     model: 'small', // Use small model for better mobile compatibility
-    publicPath: `${import.meta.env.BASE_URL}assets/`, // Ensure WASM assets are found on GitHub Pages
+    // Reverting to default CDN to avoid Vite hashing issues with local assets
     output: {
       format: 'image/png',
       quality: 1,
@@ -20,7 +20,6 @@ export async function segmentPerson(imageSource, onProgress) {
     },
     progress: (key, current, total) => {
       if (onProgress && total > 0) {
-        // During model download keys start with "fetch:"
         const pct = current / total;
         onProgress(pct);
       }
@@ -32,8 +31,9 @@ export async function segmentPerson(imageSource, onProgress) {
     isModelLoaded = true;
     return blob;
   } catch (err) {
-    console.error('[segmentation] Error:', err);
-    throw new Error('Background removal failed. Please try again.');
+    console.error('[segmentation] Detailed Error:', err);
+    // Throw more descriptive error
+    throw new Error(`Background removal failed: ${err.message || 'Unknown error'}`);
   }
 }
 
