@@ -11,7 +11,8 @@ let isModelLoaded = false;
  */
 export async function segmentPerson(imageSource, onProgress) {
   const config = {
-    model: 'medium',
+    model: 'small', // Use small model for better mobile compatibility
+    publicPath: `${import.meta.env.BASE_URL}assets/`, // Ensure WASM assets are found on GitHub Pages
     output: {
       format: 'image/png',
       quality: 1,
