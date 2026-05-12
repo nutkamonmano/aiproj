@@ -11,8 +11,9 @@ let isModelLoaded = false;
  */
 export async function segmentPerson(imageSource, onProgress) {
   const config = {
-    model: 'small', // Use small model for better mobile compatibility
-    // Reverting to default CDN to avoid Vite hashing issues with local assets
+    model: 'small',
+    // Force use of official CDN to avoid local path/hashing issues on GitHub Pages
+    publicPath: 'https://static.img.ly/packages/@imgly/background-removal-data/1.4.5/dist/',
     output: {
       format: 'image/png',
       quality: 1,

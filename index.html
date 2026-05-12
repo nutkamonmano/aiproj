@@ -70,9 +70,14 @@
         setTimeout(() => splash.remove(), 500);
       }
 
-      // Register Service Worker for PWA
+      /* Automatically unregister any existing service workers to clear stale cache */
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/aiproj/sw.js').catch(() => {});
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            console.log('Old SW unregistered');
+          }
+        });
       }
     });
   </script>

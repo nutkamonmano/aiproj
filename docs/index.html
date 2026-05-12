@@ -33,7 +33,7 @@
     }
     @keyframes sweep { from { background-position: 200% 0; } to { background-position: -200% 0; } }
   </style>
-  <script type="module" crossorigin src="/aiproj/assets/index-CbPaUHHr.js"></script>
+  <script type="module" crossorigin src="/aiproj/assets/index-BLDTy5bi.js"></script>
   <link rel="stylesheet" crossorigin href="/aiproj/assets/index-DMqC_Pa7.css">
 </head>
 <body>
@@ -71,9 +71,14 @@
         setTimeout(() => splash.remove(), 500);
       }
 
-      // Register Service Worker for PWA
+      /* Automatically unregister any existing service workers to clear stale cache */
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/aiproj/sw.js').catch(() => {});
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            console.log('Old SW unregistered');
+          }
+        });
       }
     });
   </script>
