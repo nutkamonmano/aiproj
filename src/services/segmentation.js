@@ -1,8 +1,7 @@
-
 import Human from '@vladmandic/human';
 
 const human = new Human({
-  modelBasePath: 'https://vladmandic.github.io/human/models',
+  modelBasePath: 'https://vladmandic.github.io/human/models', // CDN ที่ถูกต้อง
   cacheModels: true,
   segmentation: {
     enabled: true,
