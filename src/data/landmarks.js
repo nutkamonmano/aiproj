@@ -6,7 +6,7 @@ export const landmarks = [
     icon: '🏛️',
     color: '#00f5ff',
     theme: 'Quantum Portal',
-    fallback: './assets/landscapes/gate.png',
+    fallback: './assets/landscapes/gate.jpg',
     prompt: 'massive futuristic university gateway transformed into a quantum energy portal, swirling cyan and purple energy vortex, towering holographic pillars, neon light trails, epic sci-fi cinematic, photorealistic 8K, volumetric god rays, dark dramatic sky',
   },
   {

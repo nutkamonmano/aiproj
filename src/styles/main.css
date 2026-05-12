@@ -91,6 +91,13 @@ body {
   padding: 20px 24px 16px;
   text-align: center;
   position: relative;
+  z-index: 10;
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 16px 16px 12px;
+  }
 }
 
 .app-logo {
@@ -130,6 +137,12 @@ body {
   justify-content: center;
   gap: 8px;
   padding: 12px 24px;
+}
+
+@media (max-width: 480px) {
+  .step-indicator {
+    padding: 8px 16px;
+  }
 }
 
 .step-dot {
