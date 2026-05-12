@@ -16,18 +16,18 @@ export class CameraCapture {
 
   render() {
     this.container.innerHTML = `
-      <div class="screen" id="screen-camera">
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
-          <button class="btn btn-ghost" id="btn-back-camera" style="padding:10px 16px; min-height:40px; font-size:0.85rem;">← กลับ</button>
-          <div>
-            <p class="screen-title" style="margin-bottom:0; font-size:1.1rem;">${this.landmark.icon} ${this.landmark.name}</p>
-            <p style="font-size:0.75rem; color:var(--text-muted); letter-spacing:0.08em;">${this.landmark.theme.toUpperCase()}</p>
+      <div class="screen" id="screen-camera" style="height: 100%; max-height: 100%; overflow: hidden; display: flex; flex-direction: column;">
+        <div style="display:flex; align-items:center; justify-content: space-between; gap:10px; margin-bottom:12px; flex-shrink: 0;">
+          <button class="btn btn-ghost" id="btn-back-camera" style="padding:8px 12px; min-height:36px; font-size:0.8rem; flex-shrink:0;">← กลับ</button>
+          <div style="text-align: right; min-width: 0;">
+            <p class="screen-title" style="margin-bottom:0; font-size:1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${this.landmark.icon} ${this.landmark.name}</p>
+            <p style="font-size:0.7rem; color:var(--text-muted); letter-spacing:0.05em;">${this.landmark.theme.toUpperCase()}</p>
           </div>
         </div>
 
         <!-- Camera or preview -->
-        <div id="camera-area" class="camera-frame scan-sweep neon-border" style="position:relative;">
-          <video id="camera-video" autoplay playsinline muted></video>
+        <div id="camera-area" class="camera-frame scan-sweep neon-border" style="position:relative; flex: 1; min-height: 0; flex-shrink: 1;">
+          <video id="camera-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover;"></video>
           <canvas id="capture-canvas" style="display:none; width:100%; height:100%; object-fit:cover; border-radius: inherit;"></canvas>
           <div id="photo-preview" style="display:none; width:100%; height:100%;">
             <img id="preview-img" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" />
@@ -37,27 +37,22 @@ export class CameraCapture {
         </div>
 
         <!-- Controls -->
-        <div id="camera-controls" style="margin-top:clamp(10px, 4vh, 20px); display:flex; flex-direction:column; align-items:center; gap:clamp(8px, 2vh, 16px);">
+        <div id="camera-controls" style="margin-top:12px; display:flex; flex-direction:column; align-items:center; gap:10px; flex-shrink: 0;">
           <div style="display:flex; align-items:center; gap:24px;">
-            <!-- Upload button -->
-            <label class="btn btn-icon" style="cursor:pointer;" title="อัปโหลดรูป">
+            <label class="btn btn-icon" style="cursor:pointer; width:48px; height:48px; padding:0; display:flex; align-items:center; justify-content:center;" title="อัปโหลดรูป">
               🖼️
               <input type="file" id="file-input" accept="image/*" style="display:none;" />
             </label>
-
-            <!-- Capture button -->
             <button class="capture-btn" id="btn-capture" title="ถ่ายรูป"></button>
-
-            <!-- Flip camera -->
-            <button class="btn btn-icon" id="btn-flip" title="สลับกล้อง">🔄</button>
+            <button class="btn btn-icon" id="btn-flip" style="width:48px; height:48px; padding:0; display:flex; align-items:center; justify-content:center;" title="สลับกล้อง">🔄</button>
           </div>
-          <p style="font-size:0.8rem; color:var(--text-muted);">กดปุ่มกลมเพื่อถ่ายรูป หรือเลือกรูปจากอัลบั้ม</p>
+          <p id="camera-hint" style="font-size:0.75rem; color:var(--text-muted); text-align:center;">กดปุ่มเพื่อถ่ายรูป หรือเลือกรูปจากอัลบั้ม</p>
         </div>
 
         <!-- Retake / Use Photo -->
-        <div id="photo-actions" style="display:none; margin-top:20px; display:none; flex-direction:column; gap:10px;">
-          <button class="btn btn-primary" id="btn-use-photo">ใช้รูปนี้ ✨</button>
-          <button class="btn btn-ghost" id="btn-retake">ถ่ายใหม่</button>
+        <div id="photo-actions" style="display:none; margin-top:12px; flex-direction:column; gap:8px; flex-shrink: 0;">
+          <button class="btn btn-primary" id="btn-use-photo" style="min-height:48px;">ใช้รูปนี้ ✨</button>
+          <button class="btn btn-ghost" id="btn-retake" style="min-height:44px;">ถ่ายใหม่</button>
         </div>
       </div>
     `;
