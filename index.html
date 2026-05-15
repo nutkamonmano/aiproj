@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>HCU Landmark — Smart Faculty Filter</title>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Sarabun:wght@300;400;600&display=swap');
+
+    :root {
+      --neon-cyan: #00f5ff;
+      --neon-purple: #b44fff;
+      --neon-pink: #ff2d9b;
+      --neon-green: #39ff14;
+      --dark-bg: #030812;
+      --dark-card: #080f1e;
+      --dark-panel: #0d1a2e;
+      --border-glow: rgba(0, 245, 255, 0.3);
+      --text-primary: #e8f4ff;
+      --text-muted: rgba(232, 244, 255, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--dark-bg);
+      color: var(--text-primary);
+      font-family: 'Sarabun', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Grid bg ─── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 245, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 245, 255, 0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 0 80px;
+    }
+
+    /* ─── Header ─── */
+    header {
+      padding: 20px 16px 12px;
+      text-align: center;
+      border-bottom: 1px solid var(--border-glow);
+      background: linear-gradient(180deg, rgba(0, 245, 255, 0.05) 0%, transparent 100%);
+    }
+
+    header .logo-text {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: var(--neon-cyan);
+      opacity: 0.8;
+      margin-bottom: 4px;
+    }
+
+    header h1 {
+      font-family: 'Orbitron', monospace;
+      font-size: 20px;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+    }
+
+    header p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    /* ─── Steps indicator ─── */
+    .steps-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      padding: 16px 24px;
+    }
+
+    .step-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(0, 245, 255, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      transition: all 0.3s;
+      flex-shrink: 0;
+    }
+
+    .step-dot.active {
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+      box-shadow: 0 0 12px rgba(0, 245, 255, 0.4);
+    }
+
+    .step-dot.done {
+      background: rgba(0, 245, 255, 0.15);
+      border-color: var(--neon-cyan);
+      color: var(--neon-cyan);
+    }
+
+    .step-line {
+      flex: 1;
+      height: 1px;
+      background: rgba(0, 245, 255, 0.15);
+      max-width: 40px;
+    }
+
+    /* ─── Panels ─── */
+    .panel {
+      display: none;
+      padding: 16px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ─── Section label ─── */
+    .section-label {
+      font-family: 'Orbitron', monospace;
+      font-size: 9px;
+      letter-spacing: 3px;
+      color: var(--neon-cyan);
+      margin-bottom: 10px;
+      opacity: 0.7;
+    }
+
+    /* ─── Camera Zone ─── */
+    .camera-zone {
+      background: var(--dark-card);
+      border: 1.5px dashed rgba(0, 245, 255, 0.25);
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      aspect-ratio: 3/4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: border-color 0.3s;
+    }
+
+    .camera-zone:hover {
+      border-color: rgba(0, 245, 255, 0.6);
+    }
+
+    .camera-zone.has-image {
+      border-style: solid;
+      border-color: rgba(0, 245, 255, 0.5);
+    }
+
+    .camera-placeholder {
+      text-align: center;
+      padding: 24px;
+    }
+
+    .camera-placeholder .icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      display: block;
+      filter: drop-shadow(0 0 8px rgba(0, 245, 255, 0.4));
+    }
+
+    .camera-placeholder p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .camera-placeholder .hint {
+      font-size: 11px;
+      color: rgba(0, 245, 255, 0.5);
+      margin-top: 8px;
+      font-family: 'Orbitron', monospace;
+    }
+
+    #preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    /* scan line overlay on preview */
+    .scan-overlay {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(0deg,
+          transparent,
+          transparent 3px,
+          rgba(0, 0, 0, 0.08) 3px,
+          rgba(0, 0, 0, 0.08) 4px);
+      pointer-events: none;
+    }
+
+    .corner-tl,
+    .corner-tr,
+    .corner-bl,
+    .corner-br {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-color: var(--neon-cyan);
+      border-style: solid;
+      opacity: 0.7;
+    }
+
+    .corner-tl {
+      top: 10px;
+      left: 10px;
+      border-width: 2px 0 0 2px;
+    }
+
+    .corner-tr {
+      top: 10px;
+      right: 10px;
+      border-width: 2px 2px 0 0;
+    }
+
+    .corner-bl {
+      bottom: 10px;
+      left: 10px;
+      border-width: 0 0 2px 2px;
+    }
+
+    .corner-br {
+      bottom: 10px;
+      right: 10px;
+      border-width: 0 2px 2px 0;
+    }
+
+    /* file input hidden */
+    #file-input {
+      display: none;
+    }
+
+    /* ─── Camera buttons ─── */
+    .cam-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    /* ─── Buttons ─── */
+    .btn {
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: 'Sarabun', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: scale(0.97);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1.5px solid rgba(0, 245, 255, 0.3);
+      color: var(--neon-cyan);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--neon-cyan);
+      background: rgba(0, 245, 255, 0.05);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #0099cc, #6600cc);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(0, 153, 204, 0.3);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 4px 28px rgba(0, 153, 204, 0.5);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-accent {
+      background: linear-gradient(135deg, #cc0066, #6600cc);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(180, 0, 255, 0.3);
+    }
+
+    .btn-full {
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    /* ─── Theme Grid ─── */
+    .theme-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .theme-card {
+      background: var(--dark-card);
+      border: 1.5px solid rgba(0, 245, 255, 0.1);
+      border-radius: 12px;
+      padding: 14px 12px;
+      cursor: pointer;
+      transition: all 0.25s;
+      text-align: center;
+    }
+
+    .theme-card:hover {
+      border-color: rgba(0, 245, 255, 0.4);
+    }
+
+    .theme-card.selected {
+      border-color: var(--neon-cyan);
+      background: rgba(0, 245, 255, 0.06);
+      box-shadow: 0 0 16px rgba(0, 245, 255, 0.15);
+    }
+
+    .theme-card .emoji {
+      font-size: 28px;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .theme-card .name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: block;
+    }
+
+    .theme-card .desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+
+    .theme-card.selected .name {
+      color: var(--neon-cyan);
+    }
+
+    /* ─── Style Chips ─── */
+    .style-section {
+      margin-bottom: 16px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(180, 79, 255, 0.3);
+      color: rgba(180, 79, 255, 0.8);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: transparent;
+      font-family: 'Sarabun', sans-serif;
+    }
+
+    .chip:hover {
+      border-color: var(--neon-purple);
+    }
+
+    .chip.selected {
+      background: rgba(180, 79, 255, 0.15);
+      border-color: var(--neon-purple);
+      color: var(--neon-purple);
+      box-shadow: 0 0 10px rgba(180, 79, 255, 0.2);
+    }
+
+    /* ─── Background Gallery ─── */
+    .bg-gallery {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .bg-item {
+      aspect-ratio: 3/4;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      background: var(--dark-panel);
+    }
+
+    .bg-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.7;
+      transition: opacity 0.3s;
+    }
+
+    .bg-item:hover img {
+      opacity: 0.9;
+    }
+
+    .bg-item.selected {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 12px rgba(0, 245, 255, 0.4);
+    }
+
+    .bg-item.selected img {
+      opacity: 1;
+    }
+
+    .bg-item .bg-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-size: 8px;
+      padding: 2px 4px;
+      text-align: center;
+      font-family: 'Orbitron', monospace;
+    }
+
+    .bg-item.custom-ai {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed rgba(0, 245, 255, 0.3);
+    }
+
+    .bg-item.custom-ai .icon {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+
+    /* ─── Generation Panel ─── */
+    .gen-status {
+      background: var(--dark-card);
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      padding: 24px 20px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    .gen-status .status-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .gen-status .status-text {
+      font-family: 'Orbitron', monospace;
+      font-size: 13px;
+      color: var(--neon-cyan);
+      margin-bottom: 6px;
+    }
+
+    .gen-status .status-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Progress bar */
+    .progress-bar {
+      height: 3px;
+      background: rgba(0, 245, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 16px 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+      border-radius: 2px;
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+
+    @keyframes progressPulse {
+      0% {
+        width: 0%;
+      }
+
+      50% {
+        width: 75%;
+      }
+
+      90% {
+        width: 92%;
+      }
+
+      100% {
+        width: 95%;
+      }
+    }
+
+    .progress-fill.loading {
+      animation: progressPulse 8s ease forwards;
+    }
+
+    /* Steps list */
+    .gen-steps {
+      list-style: none;
+      text-align: left;
+      margin-top: 12px;
+    }
+
+    .gen-steps li {
+      font-size: 12px;
+      padding: 6px 0;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(0, 245, 255, 0.05);
+    }
+
+    .gen-steps li.done {
+      color: var(--neon-green);
+    }
+
+    .gen-steps li.active {
+      color: var(--neon-cyan);
+    }
+
+    .gen-steps li .step-icon {
+      width: 16px;
+      text-align: center;
+    }
+
+    /* ─── Result Panel ─── */
+    .result-frame {
+      background: var(--dark-card);
+      border: 1.5px solid rgba(0, 245, 255, 0.3);
+      border-radius: 16px;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .result-frame .result-badge {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(0, 245, 255, 0.15);
+      border: 1px solid var(--neon-cyan);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-family: 'Orbitron', monospace;
+      font-size: 9px;
+      color: var(--neon-cyan);
+      letter-spacing: 2px;
+      backdrop-filter: blur(4px);
+    }
+
+    #result-canvas {
+      width: 100%;
+      display: block;
+    }
+
+    #result-canvas-container {
+      display: none;
+    }
+
+    #result-bg-img {
+      width: 100%;
+      display: block;
+      border-radius: 16px 16px 0 0;
+    }
+
+    .result-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    /* ─── Prompt preview box ─── */
+    .prompt-box {
+      background: rgba(0, 245, 255, 0.03);
+      border: 1px solid rgba(0, 245, 255, 0.12);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+
+    .prompt-box .label {
+      font-family: 'Orbitron', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--neon-cyan);
+      opacity: 0.6;
+      margin-bottom: 6px;
+    }
+
+    .prompt-box p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* ─── bottom nav ─── */
+    .bottom-nav {
+      display: flex;
+      gap: 10px;
+      padding: 16px;
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(0deg, var(--dark-bg) 70%, transparent);
+      z-index: 10;
+    }
+
+    /* ─── Loading shimmer ─── */
+    @keyframes shimmer {
+      0% {
+        opacity: 0.5;
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0.5;
+      }
+    }
+
+    .shimmer {
+      animation: shimmer 1.5s ease infinite;
+    }
+
+    /* ─── Canvas hidden ─── */
+    #composite-canvas {
+      display: none;
+    }
+
+    /* ─── Error box ─── */
+    .error-box {
+      background: rgba(255, 45, 155, 0.08);
+      border: 1px solid rgba(255, 45, 155, 0.3);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: #ff8ec4;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    /* Live camera */
+    #live-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      display: none;
+    }
+
+    .capture-btn-wrap {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app">
+    <header>
+      <div class="logo-text">HCU — HUACHIEW CHALERMPRAKIET</div>
+      <h1>SMART LANDMARK<br>FILTER</h1>
+      <p>ถ่ายรูปกับจุด landmark แล้ว AI จะพาคุณเข้าสู่โลกอนาคต ✨</p>
+    </header>
+
+    <!-- Steps bar -->
+    <div class="steps-bar">
+      <div class="step-dot active" id="sdot-1">1</div>
+      <div class="step-line"></div>
+      <div class="step-dot" id="sdot-2">2</div>
+      <div class="step-line"></div>
+      <div class="step-dot" id="sdot-3">3</div>
+      <div class="step-line"></div>
+      <div class="step-dot" id="sdot-4">4</div>
+    </div>
+
+    <!-- ───── PANEL 1: Upload Photo ───── -->
+    <div class="panel active" id="panel-1">
+      <div class="section-label">// STEP 01 — UPLOAD PHOTO</div>
+
+      <div class="camera-zone" id="camera-zone" onclick="document.getElementById('file-input').click()">
+        <div class="camera-placeholder" id="cam-placeholder">
+          <span class="icon">📸</span>
+          <p>แตะเพื่อถ่ายรูป<br>หรืออัปโหลดรูปภาพ</p>
+          <span class="hint">กดเลือกรูปจากกล้องหรือแกลเลอรี่</span>
+        </div>
+        <video id="live-video" autoplay playsinline
+          style="display:none; width:100%; height:100%; object-fit:cover; transform:scaleX(-1)"></video>
+        <img id="preview-img" alt="preview" style="display:none" />
+        <div class="scan-overlay"></div>
+
+        <div class="corner-tl"></div>
+        <div class="corner-tr"></div>
+        <div class="corner-bl"></div>
+        <div class="corner-br"></div>
+      </div>
+
+      <input type="file" id="file-input" accept="image/*" capture="user">
+      <canvas id="composite-canvas"></canvas>
+
+      <div class="cam-btns">
+        <button class="btn btn-primary" id="start-cam-btn" onclick="startCamera()">
+          📷 เปิดกล้องสด
+        </button>
+        <button class="btn btn-ghost" id="upload-btn" onclick="document.getElementById('file-input').click()">
+          📁 อัปโหลดรูป
+        </button>
+        <button class="btn btn-accent" id="capture-btn" onclick="takeSnapshot()"
+          style="display:none; grid-column: span 2">
+          📸 ถ่ายรูปเดี๋ยวนี้
+        </button>
+        <button class="btn btn-ghost" id="retake-btn" onclick="retakePhoto()" style="display:none; grid-column: span 2">
+          🔄 ถ่ายใหม่ / เปลี่ยนรูป
+        </button>
+      </div>
+
+
+      <div class="bottom-nav">
+        <button class="btn btn-primary btn-full" id="next-1" onclick="goToStep(2)" disabled>
+          ถัดไป — เลือก Theme →
+        </button>
+      </div>
+    </div>
+
+    <!-- ───── PANEL 2: Choose Theme ───── -->
+    <div class="panel" id="panel-2">
+      <div class="section-label">// STEP 02 — CHOOSE LANDMARK THEME</div>
+
+      <div class="section-label" style="margin-top: 10px; color: var(--text-muted)">CHOOSE BACKGROUND</div>
+      <div class="bg-gallery" id="bg-gallery">
+        <!-- Will be populated by JS -->
+        <div class="bg-item selected" onclick="selectBg(this, 'ai')" id="bg-ai-option">
+          <div class="bg-item custom-ai">
+            <span class="icon">🤖</span>
+            <span class="bg-label">AI GENERATED</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav" style="gap:10px">
+        <button class="btn btn-ghost" onclick="goToStep(1)" style="flex:0 0 auto; padding:12px 16px">← กลับ</button>
+        <button class="btn btn-primary" id="next-2" onclick="goToStep(3)" disabled style="flex:1">
+          สร้างภาพ AI →
+        </button>
+      </div>
+    </div>
+
+    <!-- ───── PANEL 3: Generating ───── -->
+    <div class="panel" id="panel-3">
+      <div class="section-label">// STEP 03 — AI GENERATING</div>
+
+      <div class="prompt-box" id="prompt-preview">
+        <div class="label">// GENERATED PROMPT</div>
+        <p id="prompt-text">กำลังสร้าง prompt...</p>
+      </div>
+
+      <div class="gen-status">
+        <span class="status-icon shimmer" id="gen-icon">🤖</span>
+        <div class="status-text" id="gen-status-text">INITIALIZING AI ENGINE</div>
+        <div class="status-sub" id="gen-status-sub">กำลังเตรียมระบบ AI...</div>
+      </div>
+
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+
+      <ul class="gen-steps">
+        <li id="gstep-1"><span class="step-icon">⬜</span>กำลัง Segment ตัดพื้นหลัง (MediaPipe)</li>
+        <li id="gstep-2"><span class="step-icon">⬜</span>สร้าง Background ด้วย AI</li>
+        <li id="gstep-3"><span class="step-icon">⬜</span>รวมภาพ & ใส่ Sci-Fi Effects</li>
+        <li id="gstep-4"><span class="step-icon">⬜</span>เสร็จสิ้น!</li>
+      </ul>
+
+      <div class="error-box" id="error-box" id="error-text"></div>
+    </div>
+
+    <!-- ───── PANEL 4: Result ───── -->
+    <div class="panel" id="panel-4">
+      <div class="section-label">// STEP 04 — YOUR RESULT</div>
+
+      <div class="result-frame">
+        <div class="result-badge">HCU × AI</div>
+        <img id="result-bg-img" alt="AI Background" style="display:none" />
+        <canvas id="result-canvas" style="display:none"></canvas>
+      </div>
+
+      <div class="result-actions">
+        <button class="btn btn-primary" onclick="downloadResult()">
+          ⬇️ ดาวน์โหลด
+        </button>
+        <button class="btn btn-accent" onclick="regenerate()">
+          ✨ สร้างใหม่
+        </button>
+      </div>
+
+      <button class="btn btn-ghost btn-full" style="margin-top:10px" onclick="goToStep(1)">
+        📷 ถ่ายรูปใหม่อีกครั้ง
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ────────────────────────── SCRIPTS ────────────────────────── -->
+  <script>
+    // ─── State ───
+    let state = {
+      currentStep: 1,
+      photoBlob: null,
+      photoDataUrl: null,
+      selectedTheme: null,
+      selectedThemePrompt: '',
+      selectedStyle: 'cinematic, dramatic lighting, 8k ultra detailed',
+      generatedBgUrl: null,
+      resultDataUrl: null,
+      selectedBgType: 'ai', // 'ai' or 'fixed'
+      selectedBgUrl: null,
+      segmentedPersonCanvas: null,
+    };
+
+
+    // ─── Background Presets ───
+    const BG_PRESETS = [
+      { id: 'hcu-cyber-gate', name: 'HCU CYBER GATE', url: 'S__23494659.jpg' },
+      { id: 'hcu-real', name: 'HCU LIBRARY', url: 'SCR-20260512-kyvb.png' },
+      { id: 'hcu-street', name: 'ถนนข้าวต้มกุ้ย', url: 'มฉก-201.JPG' }
+    ];
+
+    function initBgGallery() {
+      const gallery = document.getElementById('bg-gallery');
+      BG_PRESETS.forEach(bg => {
+        const item = document.createElement('div');
+        item.className = 'bg-item';
+        item.onclick = () => selectBg(item, 'fixed', bg.url);
+        item.innerHTML = `
+      <img src="${bg.url}" alt="${bg.name}">
+      <span class="bg-label">${bg.name}</span>
+    `;
+        gallery.appendChild(item);
+      });
+    }
+    initBgGallery();
+
+    function selectBg(el, type, url = null) {
+      document.querySelectorAll('.bg-item').forEach(item => item.classList.remove('selected'));
+      el.classList.add('selected');
+      state.selectedBgType = type;
+      state.selectedBgUrl = url;
+
+      // Enable Next button since we no longer require a theme selection
+      document.getElementById('next-2').disabled = false;
+    }
+
+
+    // ─── Navigation ───
+    function goToStep(n) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-' + n).classList.add('active');
+
+      // Update step dots
+      for (let i = 1; i <= 4; i++) {
+        const dot = document.getElementById('sdot-' + i);
+        dot.classList.remove('active', 'done');
+        if (i < n) dot.classList.add('done');
+        if (i === n) dot.classList.add('active');
+      }
+
+      state.currentStep = n;
+      if (n === 3) startGeneration();
+    }
+
+    // ─── Photo Upload ───
+    document.getElementById('file-input').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (evt) {
+        state.photoDataUrl = evt.target.result;
+        state.photoBlob = file;
+
+        const img = document.getElementById('preview-img');
+        img.src = evt.target.result;
+        img.style.display = 'block';
+        document.getElementById('cam-placeholder').style.display = 'none';
+        document.getElementById('camera-zone').classList.add('has-image');
+        document.getElementById('retake-btn').style.display = '';
+        document.getElementById('next-1').disabled = false;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function retakePhoto() {
+      stopCamera();
+      state.photoDataUrl = null;
+      state.photoBlob = null;
+      document.getElementById('preview-img').style.display = 'none';
+      document.getElementById('live-video').style.display = 'none';
+      document.getElementById('cam-placeholder').style.display = 'block';
+      document.getElementById('camera-zone').classList.remove('has-image');
+
+      document.getElementById('start-cam-btn').style.display = '';
+      document.getElementById('upload-btn').style.display = '';
+      document.getElementById('capture-btn').style.display = 'none';
+      document.getElementById('retake-btn').style.display = 'none';
+
+      document.getElementById('next-1').disabled = true;
+      document.getElementById('file-input').value = '';
+    }
+
+    // ─── Live Camera Logic ───
+    let videoStream = null;
+
+    async function startCamera() {
+      const video = document.getElementById('live-video');
+      const placeholder = document.getElementById('cam-placeholder');
+
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 1080 }, height: { ideal: 1440 } },
+          audio: false
+        });
+        video.srcObject = videoStream;
+        video.style.display = 'block';
+        placeholder.style.display = 'none';
+
+        document.getElementById('start-cam-btn').style.display = 'none';
+        document.getElementById('upload-btn').style.display = 'none';
+        document.getElementById('capture-btn').style.display = 'block';
+        document.getElementById('camera-zone').classList.add('has-image');
+
+      } catch (err) {
+        console.error("Error accessing camera:", err);
+        alert("ไม่สามารถเข้าถึงกล้องได้: " + err.message);
+      }
+    }
+
+    function stopCamera() {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+      }
+    }
+
+    function takeSnapshot() {
+      const video = document.getElementById('live-video');
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      const ctx = canvas.getContext('2d');
+      // Mirror if using front camera
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+      state.photoDataUrl = dataUrl;
+
+      const img = document.getElementById('preview-img');
+      img.src = dataUrl;
+      img.style.display = 'block';
+      video.style.display = 'none';
+
+      stopCamera();
+
+      document.getElementById('capture-btn').style.display = 'none';
+      document.getElementById('retake-btn').style.display = 'block';
+      document.getElementById('next-1').disabled = false;
+    }
+
+
+    // ─── Theme selection ───
+    function selectTheme(el) {
+      document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      state.selectedTheme = el.dataset.theme;
+      state.selectedThemePrompt = el.dataset.prompt;
+      document.getElementById('next-2').disabled = false;
+    }
+
+    // ─── Style chip selection ───
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', function () {
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+        this.classList.add('selected');
+        state.selectedStyle = this.dataset.style;
+      });
+    });
+
+    // ─── Build prompt ───
+    function buildPrompt() {
+      const base = state.selectedThemePrompt || 'futuristic sci-fi background, neon lights, cyberpunk';
+      return `${base}, ${state.selectedStyle}, no people, wide angle, landscape orientation, background scene only`;
+    }
+
+    // ─── Generation pipeline ───
+    async function startGeneration() {
+      const prompt = buildPrompt();
+      document.getElementById('prompt-text').textContent = prompt;
+      document.getElementById('error-box').style.display = 'none';
+
+      const fill = document.getElementById('progress-fill');
+      fill.style.width = '0%';
+      fill.classList.add('loading');
+
+      try {
+        // Step 1: Segment background (MediaPipe)
+        updateGenStep(1, 'active', '⚙️', 'SEGMENTING PERSON', 'กำลังตัดพื้นหลังด้วย MediaPipe...');
+
+        try {
+          state.segmentedPersonCanvas = await segmentPerson(state.photoDataUrl);
+          markStepDone(1);
+        } catch (e) {
+          console.error("Segmentation failed", e);
+          // Fallback to non-segmented
+          markStepDone(1);
+        }
+
+        // Step 2: Background selection/generation
+        updateGenStep(2, 'active', '🎨', 'PREPARING BACKGROUND', 'กำลังเตรียมพื้นหลัง...');
+        let bgUrl = state.selectedBgUrl;
+        if (state.selectedBgType === 'ai') {
+          bgUrl = await generateBackground(prompt);
+        }
+        state.generatedBgUrl = bgUrl;
+        markStepDone(2);
+
+        // Step 3: Composite
+        updateGenStep(3, 'active', '⚡', 'COMPOSITING IMAGE', 'รวมภาพและใส่ Effects...');
+        await compositeImages(bgUrl);
+        markStepDone(3);
+
+        // Step 4: Done
+        fill.classList.remove('loading');
+        fill.style.width = '100%';
+        markStepDone(4);
+        updateGenStep(4, 'done', '✅', 'COMPLETE!', 'ภาพของคุณพร้อมแล้ว!');
+
+        await delay(600);
+        goToStep(4);
+
+
+      } catch (err) {
+        fill.classList.remove('loading');
+        const errBox = document.getElementById('error-box');
+        errBox.textContent = '⚠️ เกิดข้อผิดพลาด: ' + err.message + ' — กรุณาลองใหม่อีกครั้ง';
+        errBox.style.display = 'block';
+        document.getElementById('gen-icon').textContent = '❌';
+        document.getElementById('gen-status-text').textContent = 'ERROR';
+        document.getElementById('gen-status-sub').textContent = 'กรุณากลับไปและลองใหม่';
+      }
+    }
+
+    // ─── Call Pollinations.ai (free, no key needed) ───
+    async function generateBackground(prompt) {
+      const encodedPrompt = encodeURIComponent(prompt);
+      const width = 768;
+      const height = 1024;
+      const seed = Math.floor(Math.random() * 99999);
+      // Removed &model=flux to use the less busy default model, which reduces "Too Many Requests" errors.
+      const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true`;
+
+      try {
+        // Verify image loads
+        await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = resolve;
+          img.onerror = () => reject(new Error('AI Rate Limited'));
+          img.src = url;
+          setTimeout(() => reject(new Error('Request timeout')), 25000);
+        });
+        return url;
+      } catch (err) {
+        console.warn("AI Generation failed, falling back to preset:", err);
+        // Fallback to the beautiful Cyber Gate preset if the AI fails
+        return 'S__23494659.jpg';
+      }
+    }
+
+
+    // ─── MediaPipe Segmentation ───
+    async function segmentPerson(imgDataUrl) {
+      return new Promise(async (resolve, reject) => {
+        const img = new Image();
+        img.src = imgDataUrl;
+        await img.decode();
+
+        const selfieSegmentation = new SelfieSegmentation({
+          locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`,
+        });
+
+        selfieSegmentation.setOptions({
+          modelSelection: 1, // 0 for general, 1 for landscape/optimized
+        });
+
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+
+        selfieSegmentation.onResults((results) => {
+          // Create mask
+          ctx.save();
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
+
+          // Only keep the person
+          ctx.globalCompositeOperation = 'source-in';
+          ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+          ctx.restore();
+
+          selfieSegmentation.close();
+          resolve(canvas);
+        });
+
+        try {
+          await selfieSegmentation.send({ image: img });
+        } catch (e) {
+          reject(e);
+        }
+      });
+    }
+
+
+    // ─── Composite person + background + effects ───
+    async function compositeImages(bgUrl) {
+      const canvas = document.getElementById('result-canvas');
+      const ctx = canvas.getContext('2d');
+
+      const W = 768, H = 1024;
+      canvas.width = W;
+      canvas.height = H;
+
+      // Load background
+      const bgImg = new Image();
+      bgImg.crossOrigin = 'anonymous';
+      await new Promise((res, rej) => {
+        bgImg.onload = res;
+        bgImg.onerror = rej;
+        bgImg.src = bgUrl;
+      });
+
+      // Draw background
+      ctx.drawImage(bgImg, 0, 0, W, H);
+
+      // ── Composite person (using MediaPipe result) ──
+      if (state.segmentedPersonCanvas) {
+        const personImg = state.segmentedPersonCanvas;
+
+        // Scale and position person (lower part of frame)
+        const personAspect = personImg.width / personImg.height;
+        const personDrawH = H * 0.85; // Height 85% of frame
+        const personDrawW = personDrawH * personAspect;
+        const personX = (W - personDrawW) / 2;
+        const personY = H - personDrawH;
+
+        // Draw segmented person
+        ctx.drawImage(personImg, personX, personY, personDrawW, personDrawH);
+      } else {
+        // Fallback: simple centered image if segmentation failed
+        const personImg = new Image();
+        await new Promise(r => { personImg.onload = r; personImg.src = state.photoDataUrl; });
+        ctx.drawImage(personImg, W * 0.1, H * 0.2, W * 0.8, H * 0.7);
+      }
+
+
+      // Composite person onto background
+      // ctx.drawImage(offCanvas, 0, 0); // Removed as we draw directly to ctx now
+
+
+      // ── Apply Sci-Fi effects ──
+      applySciFilEffects(ctx, W, H);
+
+      // Show result
+      const resultImg = document.getElementById('result-bg-img');
+      resultImg.src = canvas.toDataURL('image/jpeg', 0.92);
+      resultImg.style.display = 'block';
+      canvas.style.display = 'none';
+
+      state.resultDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    }
+
+    function applySciFilEffects(ctx, W, H) {
+      // ── Scan lines ──
+      ctx.save();
+      for (let y = 0; y < H; y += 4) {
+        ctx.fillStyle = 'rgba(0,0,0,0.08)';
+        ctx.fillRect(0, y, W, 1);
+      }
+      ctx.restore();
+
+      // ── Vignette ──
+      ctx.save();
+      const vigGrad = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, H * 0.85);
+      vigGrad.addColorStop(0, 'rgba(0,0,0,0)');
+      vigGrad.addColorStop(1, 'rgba(0,0,30,0.55)');
+      ctx.fillStyle = vigGrad;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+
+      // ── Cyan tint overlay (top) ──
+      ctx.save();
+      const topGrad = ctx.createLinearGradient(0, 0, 0, H * 0.4);
+      topGrad.addColorStop(0, 'rgba(0,245,255,0.12)');
+      topGrad.addColorStop(1, 'rgba(0,245,255,0)');
+      ctx.fillStyle = topGrad;
+      ctx.fillRect(0, 0, W, H * 0.4);
+      ctx.restore();
+
+      // ── Purple tint overlay (bottom) ──
+      ctx.save();
+      const botGrad = ctx.createLinearGradient(0, H * 0.7, 0, H);
+      botGrad.addColorStop(0, 'rgba(100,0,200,0)');
+      botGrad.addColorStop(1, 'rgba(100,0,200,0.18)');
+      ctx.fillStyle = botGrad;
+      ctx.fillRect(0, H * 0.7, W, H * 0.3);
+      ctx.restore();
+
+      // ── HUD elements ──
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0,245,255,0.5)';
+      ctx.lineWidth = 1.5;
+      // Corner brackets
+      const bSize = 30;
+      [[20, 20], [W - 20, 20], [20, H - 20], [W - 20, H - 20]].forEach(([cx, cy]) => {
+        const sx = cx < W / 2 ? 1 : -1;
+        const sy = cy < H / 2 ? 1 : -1;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy + sy * bSize);
+        ctx.lineTo(cx, cy);
+        ctx.lineTo(cx + sx * bSize, cy);
+        ctx.stroke();
+      });
+      ctx.restore();
+
+      // ── HCU watermark / badge ──
+      ctx.save();
+      ctx.font = 'bold 11px monospace';
+      ctx.fillStyle = 'rgba(0,245,255,0.6)';
+      ctx.textAlign = 'left';
+      ctx.fillText('HCU × AI LANDMARK FILTER', 28, H - 24);
+      ctx.restore();
+    }
+
+    // ─── Download ───
+    function downloadResult() {
+      const link = document.createElement('a');
+      link.download = 'HCU-landmark-' + Date.now() + '.jpg';
+      link.href = document.getElementById('result-bg-img').src || state.resultDataUrl;
+      link.click();
+    }
+
+    // ─── Regenerate ───
+    function regenerate() {
+      goToStep(3);
+    }
+
+    // ─── Helpers ───
+    function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function updateGenStep(step, status, icon, title, sub) {
+      document.getElementById('gen-icon').textContent = icon;
+      document.getElementById('gen-status-text').textContent = title;
+      document.getElementById('gen-status-sub').textContent = sub;
+
+      // Update step list
+      const stepEl = document.getElementById('gstep-' + step);
+      if (stepEl) {
+        stepEl.classList.remove('done');
+        stepEl.classList.toggle('active', status === 'active');
+        const icon_el = stepEl.querySelector('.step-icon');
+        if (status === 'active') icon_el.textContent = '▶';
+      }
+    }
+
+    function markStepDone(step) {
+      const stepEl = document.getElementById('gstep-' + step);
+      if (stepEl) {
+        stepEl.classList.remove('active');
+        stepEl.classList.add('done');
+        stepEl.querySelector('.step-icon').textContent = '✓';
+      }
+    }
+  </script>
+</body>
+
+</html>
